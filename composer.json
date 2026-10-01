@@ -1,0 +1,48 @@
+{
+    "name": "omnitrade/stripe",
+    "type": "library",
+    "description": "Omnitrade Stripe: cards and wallets through Checkout (the hosted page), refunds and webhook events, on omnipay/stripe.",
+    "keywords": [
+        "payment",
+        "stripe",
+        "omnitrade"
+    ],
+    "license": "LGPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "Marco Meyer",
+            "email": "marco.meyer@glitchr.io"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "ext-bcmath": "*",
+        "glitchr/omnitrade": "^1.0@dev",
+        "omnipay/common": "^3.0",
+        "omnipay/stripe": "^3.2",
+        "php-http/discovery": "^1.14",
+        "symfony/http-client": "^6.4|^7.0|^8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Omnitrade\\Stripe\\": ""
+        },
+        "exclude-from-classmap": [
+            "/Tests/"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Omnitrade\\Stripe\\Tests\\": "Tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "php-http/discovery": true
+        }
+    }
+}
