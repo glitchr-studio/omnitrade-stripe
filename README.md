@@ -1,8 +1,8 @@
 # omnitrade/stripe
 
 Stripe for [glitchr/omnitrade](https://github.com/glitchr-studio/omnitrade): cards and wallets
-through Checkout (Stripe's hosted page), what was paid, refunds, and the webhook's events - on
-omnipay/stripe, through the application's HTTP client.
+through Checkout (Stripe's hosted page), what was paid, refunds, the webhook's events, and the
+catalogue kept in Stripe's Products - on omnipay/stripe, through the application's HTTP client.
 
 ```yaml
 omnitrade:
@@ -20,6 +20,15 @@ omnitrade:
 required; Stripe appends `?session={CHECKOUT_SESSION_ID}` to it); `fetch()` reads the session
 (paid, open, expired); `refund()` pays back on the session's charge, with an idempotency key;
 `notify()` checks `Stripe-Signature` and reads the `checkout.session.*` events. No authorizations.
+
+## Catalogue
+
+`fetchProducts()` lists Stripe's Products (`starting_after`; a query through the products
+search, `name~"…"`), `fetchProduct()` reads one by its `prod_…` id; each active Price is a
+variant (the default price first) with its offer. Metadata are the attributes, `metadata.brand`
+the brand; `images` the media. Stripe counts no stock: `fetchInventory()` is not supported.
+`notify()` reads `product.*` and `price.*` into a `Notification` carrying the product. See
+[docs/catalogue.md](docs/catalogue.md).
 
 Credentials: a secret key from the Stripe Dashboard (Developers → API keys), and a webhook
 endpoint for `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
