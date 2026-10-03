@@ -11,6 +11,7 @@ use Omnitrade\Model\Status;
 use Omnitrade\Request\Notify;
 use Omnitrade\Request\Request;
 use Omnitrade\Stripe\Api;
+use Omnitrade\Stripe\Products;
 use Omnitrade\Stripe\Sessions;
 
 /**
@@ -19,6 +20,12 @@ use Omnitrade\Stripe\Sessions;
  * with a paid session is PAID, expired and async_payment_failed is EXPIRED /
  * REFUSED. Any other event is handed back with no status, to ignore or to
  * read from $raw.
+ *
+ * The catalogue's events carry the product: product.created and
+ * product.updated the event's product with its active prices (one call),
+ * price.created, price.updated and price.deleted the price's product, read
+ * afresh (two calls); product.deleted the product's id alone. $reference is
+ * the product's id.
  */
 final class NotifyAction implements ActionInterface, ApiAwareInterface
 {
@@ -53,14 +60,24 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface
             default => null,
         };
 
+        $reference = isset($object['id']) ? (string) $object['id'] : null;
+        $product = null;
+        if ('product' === ($object['object'] ?? null) && null !== $reference && 'product.deleted' !== $event['type']) {
+            $product = Products::fetch($this->api, $object);
+        } elseif ('price' === ($object['object'] ?? null) && str_starts_with($event['type'], 'price.')) {
+            $reference = \is_array($object['product'] ?? null) ? (string) ($object['product']['id'] ?? '') : (string) ($object['product'] ?? '');
+            $product = '' === $reference ? null : Products::find($this->api, $reference);
+        }
+
         $request->setResult(new Notification(
             provider: 'stripe',
             event: $event['type'],
-            reference: isset($object['id']) ? (string) $object['id'] : null,
+            reference: $reference,
             status: $status,
             transaction: $session ? Sessions::transaction($session) : null,
             id: isset($event['id']) ? (string) $event['id'] : null,
             raw: $event,
+            product: $product,
         ));
     }
 }

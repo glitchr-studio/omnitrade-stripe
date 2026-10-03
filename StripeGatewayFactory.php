@@ -4,6 +4,8 @@ namespace Omnitrade\Stripe;
 
 use Omnitrade\Config;
 use Omnitrade\GatewayFactory;
+use Omnitrade\Stripe\Action\FetchProductAction;
+use Omnitrade\Stripe\Action\FetchProductsAction;
 use Omnitrade\Stripe\Action\FetchTransactionAction;
 use Omnitrade\Stripe\Action\GetPaymentMethodsAction;
 use Omnitrade\Stripe\Action\NotifyAction;
@@ -12,13 +14,15 @@ use Omnitrade\Stripe\Action\RefundAction;
 
 /**
  * Stripe: cards and wallets through Checkout (the hosted page), what was
- * paid, refunds, and the webhook's events.
+ * paid, refunds, the webhook's events, and the catalogue kept in Stripe's
+ * Products and Prices (no stock: fetchInventory() is not supported).
  *
  *   options:
  *     api_key: '%env(STRIPE_API_KEY)%'              # sk_live_... / sk_test_...
  *     webhook_secret: '%env(STRIPE_WEBHOOK_SECRET)%' # whsec_..., for notify()
  *     adaptive_pricing: false                        # true: Stripe may offer the buyer's own currency
  *     payment_methods: []                            # ['card', 'sepa_debit']: the methods to insist on
+ *     active_only: false                             # true: fetchProducts() lists the active products only
  *
  * No authorizations: Checkout takes the money when the buyer pays (a session
  * in "setup"/"authorize" mode is not offered here).
@@ -34,11 +38,14 @@ final class StripeGatewayFactory extends GatewayFactory
             'webhook_secret' => null,
             'adaptive_pricing' => false,
             'payment_methods' => [],
+            'active_only' => false,
             'omnitrade.api' => fn (Config $c) => new Api((string) $c['api_key'], $c['webhook_secret'] ?: null, $this->http),
             'omnitrade.action.purchase' => static fn (Config $c) => new PurchaseAction((bool) $c['adaptive_pricing'], (array) $c['payment_methods']),
             'omnitrade.action.fetch' => new FetchTransactionAction(),
             'omnitrade.action.refund' => new RefundAction(),
             'omnitrade.action.notify' => new NotifyAction(),
+            'omnitrade.action.products' => static fn (Config $c) => new FetchProductsAction((bool) $c['active_only']),
+            'omnitrade.action.product' => new FetchProductAction(),
             'omnitrade.action.methods' => static fn (Config $c) => new GetPaymentMethodsAction((array) $c['payment_methods']),
         ]);
     }

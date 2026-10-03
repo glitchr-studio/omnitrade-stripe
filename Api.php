@@ -6,7 +6,10 @@ use Omnipay\Common\Http\Client as OmnipayClient;
 use Omnipay\Omnipay;
 use Omnipay\Stripe\PaymentIntentsGateway;
 use Omnitrade\Exception\InvalidNotificationException;
+use Omnitrade\Exception\ProviderException;
+use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpClient\Psr18Client;
+use Symfony\Contracts\HttpClient\Exception\ExceptionInterface as HttpExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
@@ -14,10 +17,13 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * and the PaymentIntents gateway (what was paid, refunds), both on one
  * secret key. Omnipay talks through the application's HTTP client when one
  * is given (a PSR-18 bridge): the profiler sees the calls, the tests mock them.
+ * The catalogue's plain reads (products, prices) go straight through that
+ * client, get(), with the secret key as a bearer token.
  */
 final class Api
 {
     public const SIGNATURE_HEADER = 'Stripe-Signature';
+    public const BASE_URI = 'https://api.stripe.com';
 
     public function __construct(
         private readonly string $apiKey,
@@ -36,6 +42,38 @@ final class Api
     {
         /** @var PaymentIntentsGateway */
         return $this->create('Stripe\PaymentIntents');
+    }
+
+    /**
+     * A GET of Stripe's REST API: "/v1/products", with its query (arrays as
+     * Stripe reads them, expand[0]=...).
+     *
+     * @return array<string, mixed>
+     *
+     * @throws ProviderException with Stripe's error code ("resource_missing")
+     */
+    public function get(string $path, array $query = []): array
+    {
+        try {
+            $response = ($this->http ?? HttpClient::create())->request('GET', self::BASE_URI.'/'.ltrim($path, '/'), [
+                'auth_bearer' => $this->apiKey,
+                'headers' => ['Accept' => 'application/json'],
+                'query' => $query,
+                'timeout' => 30,
+            ]);
+            $status = $response->getStatusCode();
+            $data = json_decode($response->getContent(false), true);
+        } catch (HttpExceptionInterface $e) {
+            throw new ProviderException('stripe', 'Stripe request failed: '.$e->getMessage(), null, $e);
+        }
+        if (!\is_array($data)) {
+            throw new ProviderException('stripe', sprintf('Stripe answered HTTP %d with a body that is not JSON.', $status));
+        }
+        if ($status >= 400 || isset($data['error'])) {
+            throw new ProviderException('stripe', (string) ($data['error']['message'] ?? sprintf('HTTP %d', $status)), isset($data['error']['code']) ? (string) $data['error']['code'] : null);
+        }
+
+        return $data;
     }
 
     public function canVerify(): bool

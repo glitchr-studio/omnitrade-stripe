@@ -1,7 +1,7 @@
 {
     "name": "omnitrade/stripe",
     "type": "library",
-    "description": "Omnitrade Stripe: cards and wallets through Checkout (the hosted page), refunds and webhook events, on omnipay/stripe.",
+    "description": "Omnitrade Stripe: cards and wallets through Checkout (the hosted page), refunds, webhook events and the catalogue of Stripe Products and Prices, on omnipay/stripe.",
     "keywords": [
         "payment",
         "stripe",
