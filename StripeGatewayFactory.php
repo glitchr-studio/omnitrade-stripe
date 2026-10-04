@@ -4,18 +4,32 @@ namespace Omnitrade\Stripe;
 
 use Omnitrade\Config;
 use Omnitrade\GatewayFactory;
+use Omnitrade\Stripe\Action\AccountLinkAction;
+use Omnitrade\Stripe\Action\CancelSubscriptionAction;
+use Omnitrade\Stripe\Action\CreateAccountAction;
+use Omnitrade\Stripe\Action\FetchAccountAction;
 use Omnitrade\Stripe\Action\FetchProductAction;
 use Omnitrade\Stripe\Action\FetchProductsAction;
+use Omnitrade\Stripe\Action\FetchSubscriptionAction;
 use Omnitrade\Stripe\Action\FetchTransactionAction;
 use Omnitrade\Stripe\Action\GetPaymentMethodsAction;
 use Omnitrade\Stripe\Action\NotifyAction;
 use Omnitrade\Stripe\Action\PurchaseAction;
 use Omnitrade\Stripe\Action\RefundAction;
+use Omnitrade\Stripe\Action\SubscribeAction;
+use Omnitrade\Stripe\Action\SubscriptionPortalAction;
 
 /**
  * Stripe: cards and wallets through Checkout (the hosted page), what was
  * paid, refunds, the webhook's events, and the catalogue kept in Stripe's
  * Products and Prices (no stock: fetchInventory() is not supported).
+ *
+ * Connect: Express accounts opened for those the platform pays
+ * (createAccount(), accountLink(), fetchAccount()), and payments sent to them
+ * as destination charges (Payment::$destination, ::$applicationFee).
+ * Subscriptions: Checkout in subscription mode (subscribe()), the customer
+ * portal, cancellation; account.updated and customer.subscription.* events
+ * read by notify().
  *
  *   options:
  *     api_key: '%env(STRIPE_API_KEY)%'              # sk_live_... / sk_test_...
@@ -46,6 +60,13 @@ final class StripeGatewayFactory extends GatewayFactory
             'omnitrade.action.notify' => new NotifyAction(),
             'omnitrade.action.products' => static fn (Config $c) => new FetchProductsAction((bool) $c['active_only']),
             'omnitrade.action.product' => new FetchProductAction(),
+            'omnitrade.action.account_create' => new CreateAccountAction(),
+            'omnitrade.action.account_link' => new AccountLinkAction(),
+            'omnitrade.action.account' => new FetchAccountAction(),
+            'omnitrade.action.subscribe' => new SubscribeAction(),
+            'omnitrade.action.subscription' => new FetchSubscriptionAction(),
+            'omnitrade.action.subscription_cancel' => new CancelSubscriptionAction(),
+            'omnitrade.action.subscription_portal' => new SubscriptionPortalAction(),
             'omnitrade.action.methods' => static fn (Config $c) => new GetPaymentMethodsAction((array) $c['payment_methods']),
         ]);
     }

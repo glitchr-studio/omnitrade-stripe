@@ -36,3 +36,12 @@ endpoint for `checkout.session.completed`, `checkout.session.async_payment_succe
 `webhook_secret`). Locally, `stripe listen --forward-to <your webhook URL>` prints one.
 
 License: LGPL-3.0-or-later.
+
+## Connect and subscriptions
+
+Express accounts for those the platform pays (`createAccount()`, `accountLink()`,
+`fetchAccount()`), payments sent to them as destination charges
+(`Payment::$destination`, `::$applicationFee`), subscriptions through Checkout
+(`subscribe()`, `fetchSubscription()`, `cancelSubscription()`, `subscriptionPortal()`), and the
+`account.updated` and `customer.subscription.*` events read by `notify()`. See
+[docs/connect.md](docs/connect.md).

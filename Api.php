@@ -76,6 +76,72 @@ final class Api
         return $data;
     }
 
+    /**
+     * A POST of Stripe's REST API, form-encoded as Stripe reads it (nested
+     * arrays as a[b][c]=...; booleans as "true" / "false"): accounts, account
+     * links, portal sessions, subscriptions - what omnipay/stripe has no
+     * message for.
+     *
+     * @param array<string, mixed> $parameters
+     *
+     * @return array<string, mixed>
+     *
+     * @throws ProviderException with Stripe's error code
+     */
+    public function post(string $path, array $parameters = [], ?string $idempotencyKey = null): array
+    {
+        return $this->send('POST', $path, $parameters, $idempotencyKey);
+    }
+
+    /** @return array<string, mixed> */
+    public function delete(string $path, array $parameters = []): array
+    {
+        return $this->send('DELETE', $path, $parameters);
+    }
+
+    /** @return array<string, mixed> */
+    private function send(string $method, string $path, array $parameters, ?string $idempotencyKey = null): array
+    {
+        array_walk_recursive($parameters, static function (&$value): void {
+            if (\is_bool($value)) {
+                $value = $value ? 'true' : 'false';
+            }
+        });
+        try {
+            $response = ($this->http ?? HttpClient::create())->request($method, self::BASE_URI.'/'.ltrim($path, '/'), [
+                'auth_bearer' => $this->apiKey,
+                'headers' => array_filter(['Accept' => 'application/json', 'Content-Type' => 'application/x-www-form-urlencoded', 'Idempotency-Key' => $idempotencyKey]),
+                'body' => http_build_query(self::withoutNulls($parameters)),
+                'timeout' => 30,
+            ]);
+            $status = $response->getStatusCode();
+            $data = json_decode($response->getContent(false), true);
+        } catch (HttpExceptionInterface $e) {
+            throw new ProviderException('stripe', 'Stripe request failed: '.$e->getMessage(), null, $e);
+        }
+        if (!\is_array($data)) {
+            throw new ProviderException('stripe', sprintf('Stripe answered HTTP %d with a body that is not JSON.', $status));
+        }
+        if ($status >= 400 || isset($data['error'])) {
+            throw new ProviderException('stripe', (string) ($data['error']['message'] ?? sprintf('HTTP %d', $status)), isset($data['error']['code']) ? (string) $data['error']['code'] : null);
+        }
+
+        return $data;
+    }
+
+    private static function withoutNulls(array $parameters): array
+    {
+        foreach ($parameters as $key => $value) {
+            if (null === $value) {
+                unset($parameters[$key]);
+            } elseif (\is_array($value)) {
+                $parameters[$key] = self::withoutNulls($value);
+            }
+        }
+
+        return $parameters;
+    }
+
     public function canVerify(): bool
     {
         return null !== $this->webhookSecret && '' !== $this->webhookSecret;

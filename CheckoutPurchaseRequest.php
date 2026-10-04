@@ -14,6 +14,8 @@ use Omnipay\Stripe\Message\Checkout\PurchaseRequest;
  *   client_reference_id  the merchant's reference (the order's) - the parent's parameter, sent here
  *   metadata             kept by Stripe, given back on every event
  *   notice               a mention on the page and the receipt (why no VAT...)
+ *   destination          a connected account the payment is passed on to (Connect destination charge)
+ *   applicationFee       what the platform keeps of it, in minor units
  *
  * The methods to insist on (paymentMethodTypes) and the Idempotency-Key header
  * (setIdempotencyKeyHeader) are the parent's.
@@ -26,6 +28,10 @@ class CheckoutPurchaseRequest extends PurchaseRequest
     public function setAdaptivePricing(bool $value): self { return $this->setParameter('adaptivePricing', $value); }
     public function getLocale(): ?string { return $this->getParameter('locale'); }
     public function setLocale(?string $value): self { return $this->setParameter('locale', $value); }
+    public function getDestination(): ?string { return $this->getParameter('destination'); }
+    public function setDestination(?string $value): self { return $this->setParameter('destination', $value); }
+    public function getApplicationFee(): ?int { return $this->getParameter('applicationFee'); }
+    public function setApplicationFee(?int $value): self { return $this->setParameter('applicationFee', $value); }
     public function getNotice(): ?string { return $this->getParameter('notice'); }
     public function setNotice(?string $value): self { return $this->setParameter('notice', $value); }
 
@@ -49,6 +55,14 @@ class CheckoutPurchaseRequest extends PurchaseRequest
         if ($this->getNotice()) {
             $data['custom_text'] = ['submit' => ['message' => $this->getNotice()]];
             $data['payment_intent_data'] = ['description' => $this->getNotice()];
+        }
+        // Connect, a destination charge: the platform takes the payment, Stripe
+        // passes it on to the connected account, less the platform's fee.
+        if ($this->getDestination()) {
+            $data['payment_intent_data'] = ($data['payment_intent_data'] ?? []) + ['transfer_data' => ['destination' => $this->getDestination()]];
+            if (null !== $this->getApplicationFee() && $this->getApplicationFee() > 0) {
+                $data['payment_intent_data']['application_fee_amount'] = $this->getApplicationFee();
+            }
         }
 
         return $data;

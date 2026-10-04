@@ -17,6 +17,9 @@ use Omnitrade\Stripe\Sessions;
  * the page's URL); notify() or fetch() then says whether they paid. The lines
  * are listed on the page when they add up to the amount, else the amount is
  * one line under the payment's description.
+ *
+ * A payment with a destination is a Connect destination charge: taken by the
+ * platform, transferred to the connected account, the application fee kept.
  */
 final class PurchaseAction implements ActionInterface, ApiAwareInterface
 {
@@ -51,6 +54,8 @@ final class PurchaseAction implements ActionInterface, ApiAwareInterface
             'locale' => $payment->locale ? substr($payment->locale, 0, 2) : null,
             'metadata' => $payment->metadata ? array_map('strval', $payment->metadata) : null,
             'adaptivePricing' => $this->adaptivePricing,
+            'destination' => $payment->destination,
+            'applicationFee' => $payment->applicationFee?->amount,
             'paymentMethodTypes' => $payment->method ? [$payment->method] : ($this->paymentMethods ?: null),
             // Stripe fills {CHECKOUT_SESSION_ID} in; the braces must survive URL encoding.
             'success_url' => str_replace('SESSION_ID_PLACEHOLDER', '{CHECKOUT_SESSION_ID}', self::withQuery($payment->returnUrl, ['session' => 'SESSION_ID_PLACEHOLDER'])),

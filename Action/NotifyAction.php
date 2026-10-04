@@ -10,6 +10,7 @@ use Omnitrade\Model\Notification;
 use Omnitrade\Model\Status;
 use Omnitrade\Request\Notify;
 use Omnitrade\Request\Request;
+use Omnitrade\Stripe\Accounts;
 use Omnitrade\Stripe\Api;
 use Omnitrade\Stripe\Products;
 use Omnitrade\Stripe\Sessions;
@@ -20,6 +21,11 @@ use Omnitrade\Stripe\Sessions;
  * with a paid session is PAID, expired and async_payment_failed is EXPIRED /
  * REFUSED. Any other event is handed back with no status, to ignore or to
  * read from $raw.
+ *
+ * account.updated carries the connected account ($account), the
+ * customer.subscription.* events the subscription ($subscription); a
+ * completed session of a subscription keeps the subscription's id in the
+ * transaction's raw data ("subscription"). $reference is the object's id.
  *
  * The catalogue's events carry the product: product.created and
  * product.updated the event's product with its active prices (one call),
@@ -78,6 +84,8 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface
             id: isset($event['id']) ? (string) $event['id'] : null,
             raw: $event,
             product: $product,
+            account: 'account' === ($object['object'] ?? null) ? Accounts::account($object) : null,
+            subscription: 'subscription' === ($object['object'] ?? null) ? Accounts::subscription($object) : null,
         ));
     }
 }
