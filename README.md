@@ -4,6 +4,14 @@ Stripe for [glitchr/omnitrade](https://github.com/glitchr-studio/omnitrade): car
 through Checkout (Stripe's hosted page), what was paid, refunds, the webhook's events, and the
 catalogue kept in Stripe's Products - on omnipay/stripe, through the application's HTTP client.
 
+```php
+$gateway = (new StripeGatewayFactory($http))->create(['api_key' => '...', 'webhook_secret' => '...']);   // $http: the application's HTTP client; none given, the factory makes its own
+```
+
+No framework needed: the package requires `glitchr/omnitrade`, `symfony/http-client` and Omnipay
+(`omnipay/stripe`, with what Omnipay itself requires). In a Symfony application, the same through
+the bundle's configuration:
+
 ```yaml
 omnitrade:
     gateways:
