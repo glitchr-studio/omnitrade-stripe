@@ -43,7 +43,7 @@ endpoint for `checkout.session.completed`, `checkout.session.async_payment_succe
 `checkout.session.expired`, `checkout.session.async_payment_failed` (its signing secret is
 `webhook_secret`). Locally, `stripe listen --forward-to <your webhook URL>` prints one.
 
-License: LGPL-3.0-or-later.
+License: MIT since 2026-10-09; earlier versions remain published under LGPL-3.0-or-later.
 
 ## Connect and subscriptions
 
